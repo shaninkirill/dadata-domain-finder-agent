@@ -110,6 +110,10 @@ def iter_json_snippets(text: str) -> Iterator[str]:
     # Незакрытые фрагменты игнорируются: их попытается спасти JsonOutputParser
     # со своим режимом частичного разбора.
 
+#: Пути типовых страниц реквизитов, проверяемые валидатором, когда ИНН не найден
+#: на главной странице домена-кандидата.
+_OWNERSHIP_PROBE_PATHS: tuple[str, ...] = ("/about", "/contacts", "/rekvizity")
+
 #: Минимальное число упоминаний домена в наблюдениях инструментов, чтобы считать
 #: его подтверждённым. Настоящие официальные сайты упоминаются в выдаче многократно;
 #: случайный «мусорный» домен из шума результатов, как правило, один раз.
@@ -434,13 +438,21 @@ class DomainFinderAgent:
                 "Валидация: домен «%s» не подтверждён наблюдениями инструментов", normalized
             )
         elif self._inn_missing_on_page(normalized, state["messages"]):
-            # Страница загружена, но ИНН организации на ней нет — мягкое замечание:
-            # агент может подтвердить домен поисковыми доказательствами или отказаться.
-            reason_message = prompts.build_ownership_feedback(
-                normalized, self._extract_inn(state["messages"])
-            )
+            # Страница загружена, но ИНН организации на ней нет. Пробуем типовые
+            # страницы реквизитов; если ИНН найден — домен подтверждён, если нет —
+            # мягкое замечание (агент может подтвердить домен поиском или отказаться).
+            inn = self._extract_inn(state["messages"])
+            found_path = self._search_inn_on_domain(normalized, inn, state["messages"])
+            if found_path is not None:
+                logger.info(
+                    "Валидация: ИНН найден на https://%s%s — домен подтверждён",
+                    normalized,
+                    found_path,
+                )
+                return {"needs_agent_retry": False}
+            reason_message = prompts.build_ownership_feedback(normalized, inn)
             logger.warning(
-                "Валидация: страница домена «%s» не упоминает ИНН организации",
+                "Валидация: ИНН организации не найден на страницах домена «%s»",
                 normalized,
             )
         else:
@@ -480,7 +492,7 @@ class DomainFinderAgent:
         :return: True, если число упоминаний домена (или его punycode-формы) не меньше
                  MIN_EVIDENCE_MENTIONS, иначе False
         """
-        variants = (domain.lower(), _idna_form(domain))
+        variants = {domain.lower(), _idna_form(domain)}
         mentions = 0
         for message in messages:
             if isinstance(message, ToolMessage):
@@ -550,6 +562,54 @@ class DomainFinderAgent:
         if observation is None:
             return False
         return inn not in observation
+
+    def _search_inn_on_domain(
+        self, domain: str, inn: str, messages: list[BaseMessage]
+    ) -> str | None:
+        """
+        Догружает типовые страницы реквизитов домена и ищет на них ИНН организации.
+
+        Реквизиты (ИНН) обычно находятся в разделах контактов, «о компании» и оферте,
+        а не на главной странице. Вызовы fetch_page внутри узла не попадают в историю
+        сообщений, чтобы не раздувать контекст.
+
+        :param domain: Нормализованный домен-кандидат
+        :param inn: ИНН организации из задания
+        :param messages: История сообщений графа (для исключения повторных загрузок)
+        :return: Путь страницы, на которой найден ИНН, или None, если ИНН не найден
+        """
+        tool = self._tool_map.get("fetch_page")
+        if tool is None or not inn:
+            return None
+
+        lower_domain = domain.lower()
+        idna_domain = _idna_form(domain)
+        fetched_paths: set[str] = set()
+        for message in messages:
+            if not isinstance(message, AIMessage):
+                continue
+            for call in message.tool_calls or []:
+                if call.get("name") != "fetch_page":
+                    continue
+                url = str((call.get("args") or {}).get("url", "")).lower()
+                if lower_domain in url or (idna_domain and idna_domain in url):
+                    path = url.split(lower_domain, 1)[-1].split(idna_domain, 1)[-1]
+                    fetched_paths.add(path.split("?", 1)[0].rstrip("/") or "/")
+
+        for probe_path in _OWNERSHIP_PROBE_PATHS:
+            if probe_path in fetched_paths:
+                continue
+            probe_url = f"https://{domain}{probe_path}"
+            try:
+                observation = str(tool.invoke({"url": probe_url}))
+            except Exception as exc:  # noqa: BLE001 — ошибка загрузки не прерывает проверку
+                logger.warning(
+                    "Проба %s завершилась ошибкой: %s", probe_url, exc.__class__.__name__
+                )
+                continue
+            if inn in observation:
+                return probe_path
+        return None
 
     def _route_after_validation(self, state: AgentState) -> str:
         """

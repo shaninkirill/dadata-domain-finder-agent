@@ -86,8 +86,9 @@ USER_AGENT: str = os.getenv("USER_AGENT", "Mozilla/5.0 (compatible; DomainFinder
 #: Максимальное число шагов графа агента (вызовы LLM + инструменты).
 MAX_AGENT_STEPS: int = int(os.getenv("MAX_AGENT_STEPS", "24"))
 
-#: Обрезка текста страницы для контекста LLM, символов.
-FETCH_PAGE_MAX_CHARS: int = int(os.getenv("FETCH_PAGE_MAX_CHARS", "4000"))
+#: Обрезка текста страницы для контекста LLM, символов. Футер с реквизитами
+#: (ИНН/ОГРН) обычно находится в конце страницы — не ставьте слишком мало.
+FETCH_PAGE_MAX_CHARS: int = int(os.getenv("FETCH_PAGE_MAX_CHARS", "8000"))
 
 #: Обрезка истории переписки для принудительного извлечения ответа, символов.
 MAX_TRANSCRIPT_CHARS: int = int(os.getenv("MAX_TRANSCRIPT_CHARS", "12000"))
