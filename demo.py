@@ -40,7 +40,7 @@ DEMO_CASES: list[dict] = [
     },
     {
         "inn": "7707083893",
-        "expected": {"sberbank.ru", "sberbank.com"},
+        "expected": "sberbank.ru",
         "description": "Проблемный кейс: ПАО Сбербанк (TLS-сертификат национального УЦ)",
     },
     {
