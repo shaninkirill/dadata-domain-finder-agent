@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-11T17:54:54",
+  "timestamp": "2026-10-11T21:11:38",
   "results": [
     {
       "inn": "7721581040",
@@ -7,17 +7,17 @@
       "expected": "dadata.ru",
       "got": "dadata.ru",
       "passed": true,
-      "seconds": 29.4,
+      "seconds": 4.2,
       "answer": "{\"domain\": \"dadata.ru\"}",
       "error": null
     },
     {
       "inn": "7707083893",
       "description": "Проблемный кейс: ПАО Сбербанк (TLS-сертификат национального УЦ)",
-      "expected": "sberbank.com / sberbank.ru",
+      "expected": "sberbank.ru",
       "got": "sberbank.ru",
       "passed": true,
-      "seconds": 7.8,
+      "seconds": 8.3,
       "answer": "{\"domain\":\"sberbank.ru\"}",
       "error": null
     },
@@ -27,7 +27,7 @@
       "expected": "None",
       "got": null,
       "passed": true,
-      "seconds": 3.8,
+      "seconds": 3.4,
       "answer": "{\"domain\": null}",
       "error": null
     },
@@ -37,7 +37,7 @@
       "expected": "None",
       "got": null,
       "passed": true,
-      "seconds": 6.4,
+      "seconds": 6.5,
       "answer": "{\"domain\": null}",
       "error": null
     },
@@ -47,7 +47,7 @@
       "expected": "None",
       "got": null,
       "passed": true,
-      "seconds": 21.8,
+      "seconds": 23.4,
       "answer": "{\"domain\": null}",
       "error": null
     }
