@@ -1,0 +1,55 @@
+{
+  "timestamp": "2026-10-11T17:54:54",
+  "results": [
+    {
+      "inn": "7721581040",
+      "description": "Базовый кейс: ООО «Дейта Кью» (DaData)",
+      "expected": "dadata.ru",
+      "got": "dadata.ru",
+      "passed": true,
+      "seconds": 29.4,
+      "answer": "{\"domain\": \"dadata.ru\"}",
+      "error": null
+    },
+    {
+      "inn": "7707083893",
+      "description": "Проблемный кейс: ПАО Сбербанк (TLS-сертификат национального УЦ)",
+      "expected": "sberbank.com / sberbank.ru",
+      "got": "sberbank.ru",
+      "passed": true,
+      "seconds": 7.8,
+      "answer": "{\"domain\":\"sberbank.ru\"}",
+      "error": null
+    },
+    {
+      "inn": "7714270020",
+      "description": "Негативный кейс: ликвидированное ООО «Пример Ком» без сайта",
+      "expected": "None",
+      "got": null,
+      "passed": true,
+      "seconds": 3.8,
+      "answer": "{\"domain\": null}",
+      "error": null
+    },
+    {
+      "inn": "1831203731",
+      "description": "Действующее ООО «Кольцо» (Ижевск) без сайта",
+      "expected": "None",
+      "got": null,
+      "passed": true,
+      "seconds": 6.4,
+      "answer": "{\"domain\": null}",
+      "error": null
+    },
+    {
+      "inn": "2725016474",
+      "description": "ГСК №57 (Хабаровск): действующий кооператив, только каталоги/соцсети",
+      "expected": "None",
+      "got": null,
+      "passed": true,
+      "seconds": 21.8,
+      "answer": "{\"domain\": null}",
+      "error": null
+    }
+  ]
+}
