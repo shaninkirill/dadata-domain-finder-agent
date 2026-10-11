@@ -7,8 +7,17 @@
 
 import re
 
-#: ИНН: 10 цифр для юридических лиц, 12 для ИП.
-_INN_RE = re.compile(r"^\d{10}(\d{2})?$")
+#: ИНН: 10 цифр для юридических лиц, 12 для ИП (проверяется контрольная сумма).
+_INN_LENGTHS: tuple[int, ...] = (10, 12)
+
+#: Веса контрольной суммы 10-значного ИНН (первые 9 разрядов).
+_INN_WEIGHTS_10: tuple[int, ...] = (2, 4, 10, 3, 5, 9, 4, 6, 8)
+
+#: Веса первой контрольной цифры 12-значного ИНН (первые 10 разрядов).
+_INN_WEIGHTS_12_FIRST: tuple[int, ...] = (7, 2, 4, 10, 3, 5, 9, 4, 6, 8)
+
+#: Веса второй контрольной цифры 12-значного ИНН (первые 11 разрядов).
+_INN_WEIGHTS_12_SECOND: tuple[int, ...] = (3, 7, 2, 4, 10, 3, 5, 9, 4, 6, 8)
 
 #: Приблизительная форма домена (поддерживает кириллицу, например «сайт.рф»).
 _DOMAIN_SHAPE_RE = re.compile(
@@ -47,14 +56,35 @@ BLOCKED_DOMAINS: frozenset[str] = frozenset(
 )
 
 
+def _inn_control_digit(digits: str, weights: tuple[int, ...]) -> int:
+    """
+    Вычисляет контрольную цифру ИНН по весам разрядов.
+
+    :param digits: Разряды ИНН, участвующие в расчёте
+    :param weights: Веса разрядов (длина равна len(digits))
+    :return: Контрольная цифра (0–9)
+    """
+    control = sum(int(digit) * weight for digit, weight in zip(digits, weights)) % 11
+    return control % 10
+
+
 def validate_inn(inn: str) -> bool:
     """
-    Проверяет формат ИНН: 10 цифр для юридических лиц или 12 цифр для ИП.
+    Проверяет формат и контрольную сумму ИНН (10 цифр для ЮЛ, 12 для ИП).
 
     :param inn: Строка с ИНН
-    :return: True, если формат корректен, иначе False
+    :return: True, если формат и контрольная сумма корректны, иначе False
     """
-    return bool(_INN_RE.match(inn.strip()))
+    digits = inn.strip()
+    if not digits.isdigit() or len(digits) not in _INN_LENGTHS:
+        return False
+
+    if len(digits) == 10:
+        return _inn_control_digit(digits[:9], _INN_WEIGHTS_10) == int(digits[9])
+
+    if _inn_control_digit(digits[:10], _INN_WEIGHTS_12_FIRST) != int(digits[10]):
+        return False
+    return _inn_control_digit(digits[:11], _INN_WEIGHTS_12_SECOND) == int(digits[11])
 
 
 def is_domain_like(value: str) -> bool:
